@@ -1,0 +1,8 @@
+node_modules
+dist
+*.db
+*.sqlite
+*.sqlite3
+.git
+.gitignore
+*.md
