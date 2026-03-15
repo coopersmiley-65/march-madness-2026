@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["...", "python3"]
+nixPkgs = ["python311", "gcc", "gnumake"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm install --production=false"]
 
 [phases.build]
 cmds = ["npm run build"]
