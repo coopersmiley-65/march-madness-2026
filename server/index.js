@@ -4,6 +4,8 @@
 import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getDb } from './db.js';
 import authRoutes from './routes/auth.js';
 import gamesRoutes from './routes/games.js';
@@ -13,12 +15,15 @@ import settingsRoutes from './routes/settings.js';
 import leaderboardRoutes from './routes/leaderboard.js';
 import wagerSuggestionsRoutes from './routes/wagerSuggestions.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:4173'],
+    origin: true,
     credentials: true,
 }));
 app.use(session({
@@ -41,6 +46,13 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/wager-suggestions', wagerSuggestionsRoutes);
+
+// Serve built frontend in production
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+});
 
 app.listen(PORT, () => {
     console.log(`🏀 March Madness server running at http://localhost:${PORT}`);
