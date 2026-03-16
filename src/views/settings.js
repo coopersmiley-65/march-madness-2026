@@ -90,10 +90,11 @@ function renderSettingsContent(container, settings, teams, players) {
                 <h3 style="margin-top:1.5rem">Manual Team Entry</h3>
                 <div class="teams-grid">
                     ${['East', 'West', 'MidWest', 'South'].map(region => {
+    const regionDisplay = r => r === 'West' ? 'South' : r === 'South' ? 'West' : r;
     const regionTeams = teams.filter(t => t.region === region);
     return `
                             <div class="team-region-section">
-                                <h4 class="region-badge ${region.toLowerCase()}">${region}</h4>
+                                <h4 class="region-badge ${region.toLowerCase()}">${regionDisplay(region)}</h4>
                                 ${regionTeams.map(t => `
                                     <div class="team-edit-row">
                                         <span class="team-seed">#${t.seed_number}</span>

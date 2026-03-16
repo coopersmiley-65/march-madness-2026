@@ -76,13 +76,15 @@ function renderBracketContent(container, games) {
     });
 }
 
+function regionDisplay(r) { return r === 'West' ? 'South' : r === 'South' ? 'West' : r; }
+
 function renderHalf(byRegion, topRegion, bottomRegion) {
     const rounds = ['R64', 'R32', 'S16', 'E8'];
 
     return `
         <div class="half-content">
             <div class="half-region" data-region="${topRegion}">
-                <div class="region-label-bracket ${topRegion.toLowerCase()}">${topRegion}</div>
+                <div class="region-label-bracket ${topRegion.toLowerCase()}">${regionDisplay(topRegion)}</div>
                 <div class="region-bracket-rounds">
                     ${rounds.map(roundId => {
         const roundGames = byRegion[topRegion][roundId] || [];
@@ -93,7 +95,7 @@ function renderHalf(byRegion, topRegion, bottomRegion) {
                 </div>
             </div>
             <div class="half-region" data-region="${bottomRegion}">
-                <div class="region-label-bracket ${bottomRegion.toLowerCase()}">${bottomRegion}</div>
+                <div class="region-label-bracket ${bottomRegion.toLowerCase()}">${regionDisplay(bottomRegion)}</div>
                 <div class="region-bracket-rounds">
                     ${rounds.map(roundId => {
         const roundGames = byRegion[bottomRegion][roundId] || [];
