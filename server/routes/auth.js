@@ -99,4 +99,27 @@ router.get('/players', (req, res) => {
     res.json({ players });
 });
 
+// TEMPORARY: Admin-only password reset endpoint (remove after use)
+router.post('/admin-reset-password', (req, res) => {
+    if (!req.session.user || !req.session.user.is_admin) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { player_number, new_password } = req.body;
+    if (!player_number || !new_password) {
+        return res.status(400).json({ error: 'player_number and new_password required' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT id, display_name FROM users WHERE player_number = ?').get(player_number);
+    if (!user) {
+        return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const password_hash = bcrypt.hashSync(new_password, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(password_hash, user.id);
+
+    res.json({ ok: true, message: `Password reset for ${user.display_name} (player #${player_number})` });
+});
+
 export default router;
