@@ -7,8 +7,16 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import fs from 'fs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, 'march_madness.db');
+const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'march_madness.db');
+
+// Ensure the directory for the database exists (needed for Railway volume mounts)
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 
 let db;
 
