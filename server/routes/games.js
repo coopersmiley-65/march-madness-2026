@@ -64,31 +64,7 @@ router.post('/scrape-results', requireAuth, requireAdmin, async (req, res) => {
     }
 });
 
-// TEMPORARY: POST /api/games/reset-all-results — Clear ALL game results (admin only)
-// This is used to fix incorrectly matched game results from the scraper.
-// REMOVE THIS ENDPOINT after use.
-router.post('/reset-all-results', requireAuth, requireAdmin, (req, res) => {
-    try {
-        const db = getDb();
 
-        // Clear all game results
-        db.prepare(`
-            UPDATE games SET score_a = NULL, score_b = NULL, winner = NULL,
-            status = 'OPEN', new_money = NULL, in_push = NULL,
-            total_pot = NULL, out_push = NULL
-            WHERE winner IS NOT NULL
-        `).run();
-
-        // Clear all payouts
-        db.prepare('DELETE FROM player_payouts').run();
-
-        const remaining = db.prepare('SELECT COUNT(*) as cnt FROM games WHERE winner IS NOT NULL').get();
-        res.json({ ok: true, message: `All game results cleared. Games with results remaining: ${remaining.cnt}` });
-    } catch (e) {
-        console.error('Reset results error:', e);
-        res.status(500).json({ error: 'Reset failed: ' + e.message });
-    }
-});
 
 // GET /api/games - All games with propagated winners
 router.get('/', (req, res) => {
