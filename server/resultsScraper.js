@@ -112,28 +112,33 @@ export function matchGameToDb(espnGame, dbGames) {
         // Already has a result — skip
         if (dbGame.winner) continue;
 
-        // Try matching by team name (fuzzy: check if ESPN name is contained in DB name or vice versa)
-        const dbA = (dbGame.team_a || '').toLowerCase();
-        const dbB = (dbGame.team_b || '').toLowerCase();
-        const espnHome = espnGame.homeTeam.toLowerCase();
-        const espnAway = espnGame.awayTeam.toLowerCase();
+        const dbA = (dbGame.team_a || '').toLowerCase().trim();
+        const dbB = (dbGame.team_b || '').toLowerCase().trim();
+        const espnHome = espnGame.homeTeam.toLowerCase().trim();
+        const espnAway = espnGame.awayTeam.toLowerCase().trim();
 
-        // Match: home=A,away=B or home=B,away=A
-        const homeIsA = nameMatch(espnHome, dbA) || (espnGame.homeSeed && espnGame.homeSeed === dbGame.seed_a);
-        const awayIsB = nameMatch(espnAway, dbB) || (espnGame.awaySeed && espnGame.awaySeed === dbGame.seed_b);
-        const homeIsB = nameMatch(espnHome, dbB) || (espnGame.homeSeed && espnGame.homeSeed === dbGame.seed_b);
-        const awayIsA = nameMatch(espnAway, dbA) || (espnGame.awaySeed && espnGame.awaySeed === dbGame.seed_a);
+        // Require name match on BOTH teams — seeds alone are NOT sufficient
+        // because multiple games can share the same seed numbers.
+        const homeNameMatchA = nameMatch(espnHome, dbA);
+        const awayNameMatchB = nameMatch(espnAway, dbB);
+        const homeNameMatchB = nameMatch(espnHome, dbB);
+        const awayNameMatchA = nameMatch(espnAway, dbA);
 
-        if (homeIsA && awayIsB) {
-            // Home = team_a, Away = team_b
+        // Optionally boost confidence with seed match (both must match)
+        const seedMatchAB = espnGame.homeSeed && espnGame.awaySeed
+            && espnGame.homeSeed === dbGame.seed_a && espnGame.awaySeed === dbGame.seed_b;
+        const seedMatchBA = espnGame.homeSeed && espnGame.awaySeed
+            && espnGame.homeSeed === dbGame.seed_b && espnGame.awaySeed === dbGame.seed_a;
+
+        // Match if BOTH team names match, OR both seeds match AND at least one name matches
+        if ((homeNameMatchA && awayNameMatchB) || (seedMatchAB && (homeNameMatchA || awayNameMatchB))) {
             return {
                 dbGame,
                 score_a: espnGame.homeScore,
                 score_b: espnGame.awayScore,
             };
         }
-        if (homeIsB && awayIsA) {
-            // Home = team_b, Away = team_a
+        if ((homeNameMatchB && awayNameMatchA) || (seedMatchBA && (homeNameMatchB || awayNameMatchA))) {
             return {
                 dbGame,
                 score_a: espnGame.awayScore,
@@ -145,11 +150,40 @@ export function matchGameToDb(espnGame, dbGames) {
 }
 
 /**
- * Fuzzy name match — checks if one name contains the other
+ * Strict name match — compares team names for reliable matching.
+ * Requires at least 4 characters and checks for meaningful overlap,
+ * not just substring containment of short strings like "north".
  */
 function nameMatch(a, b) {
     if (!a || !b) return false;
-    // Remove common prefixes like "TBD"
     if (a.startsWith('tbd') || b.startsWith('tbd')) return false;
-    return a.includes(b) || b.includes(a);
+
+    // Normalize: remove punctuation, extra spaces
+    const cleanA = a.replace(/['.]/g, '').replace(/\s+/g, ' ').trim();
+    const cleanB = b.replace(/['.]/g, '').replace(/\s+/g, ' ').trim();
+
+    // Exact match
+    if (cleanA === cleanB) return true;
+
+    // One fully contains the other (but require the shorter to be at least 4 chars)
+    if (cleanA.length >= 4 && cleanB.length >= 4) {
+        if (cleanA.includes(cleanB) || cleanB.includes(cleanA)) return true;
+    }
+
+    // Word-level matching: check if key words overlap
+    const wordsA = cleanA.split(' ').filter(w => w.length >= 3);
+    const wordsB = cleanB.split(' ').filter(w => w.length >= 3);
+
+    // Common short words to ignore in matching
+    const ignoreWords = new Set(['the', 'state', 'north', 'south', 'east', 'west', 'new', 'san', 'old']);
+
+    // Check if a significant unique word from one appears in the other
+    for (const word of wordsA) {
+        if (ignoreWords.has(word)) continue;
+        if (word.length >= 4 && wordsB.some(wb => wb === word || wb.includes(word) || word.includes(wb))) {
+            return true;
+        }
+    }
+
+    return false;
 }
