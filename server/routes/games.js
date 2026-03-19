@@ -112,6 +112,19 @@ router.put('/:gameId/result', requireAuth, requireAdmin, (req, res) => {
     const { score_a, score_b } = req.body;
     const { gameId } = req.params;
 
+    // If both scores are null, clear the result
+    if (score_a === null && score_b === null) {
+        const db = getDb();
+        db.prepare(`
+            UPDATE games SET score_a = NULL, score_b = NULL, winner = NULL,
+            status = 'OPEN', new_money = NULL, in_push = NULL,
+            total_pot = NULL, out_push = NULL
+            WHERE game_id = ?
+        `).run(gameId);
+        db.prepare('DELETE FROM player_payouts WHERE game_id = ?').run(gameId);
+        return res.json({ ok: true, message: `Result cleared for ${gameId}` });
+    }
+
     if (score_a === undefined || score_b === undefined) {
         return res.status(400).json({ error: 'Both scores required' });
     }
