@@ -16,7 +16,6 @@ COPY . .
 
 # Create data directory for persistent volume mount
 RUN mkdir -p /data
-VOLUME /data
 
 # Build the Vite frontend
 RUN npm run build
